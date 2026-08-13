@@ -1,0 +1,439 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Joymiz Timer — Free Pomodoro &amp; Productivity Timer</title>
+<meta name="description" content="Free online Pomodoro timer, stopwatch, and productivity timer. Boost focus with work/break cycles.">
+<style>
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+:root{
+  --primary:#2563eb;
+  --primary-light:#3b82f6;
+  --dark-nav:#0f172a;
+  --bg:#f8fafc;
+  --text:#0f172a;
+  --text-muted:#64748b;
+  --card:#ffffff;
+  --card-border:#e2e8f0;
+  --shadow:0 4px 24px rgba(15,23,42,.08);
+  --work-color:#2563eb;
+  --break-color:#16a34a;
+  --long-break-color:#9333ea;
+  --stopwatch-color:#f59e0b;
+  --ring-size:280px;
+  --ring-stroke:8;
+}
+.dark{
+  --bg:#0f172a;
+  --text:#f1f5f9;
+  --text-muted:#94a3b8;
+  --card:#1e293b;
+  --card-border:#334155;
+  --shadow:0 4px 24px rgba(0,0,0,.4);
+}
+html{font-family:system-ui,-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,Oxygen,Ubuntu,sans-serif;scroll-behavior:smooth}
+body{background:var(--bg);color:var(--text);min-height:100vh;display:flex;flex-direction:column;transition:background .4s,color .4s}
+
+/* NAV */
+nav{background:var(--dark-nav);color:#fff;padding:12px 24px;display:flex;align-items:center;justify-content:space-between;position:sticky;top:0;z-index:100}
+.nav-brand{display:flex;align-items:center;gap:10px;font-size:1.2rem;font-weight:700;text-decoration:none;color:#fff}
+.nav-brand span{color:var(--primary-light)}
+.nav-links{display:flex;gap:20px;align-items:center}
+.nav-links a{color:#cbd5e1;text-decoration:none;font-size:.9rem;transition:color .2s}
+.nav-links a:hover{color:#fff}
+.dark-toggle{background:none;border:2px solid #475569;color:#fff;width:38px;height:38px;border-radius:50%;cursor:pointer;font-size:1.1rem;display:flex;align-items:center;justify-content:center;transition:background .2s,border-color .2s}
+.dark-toggle:hover{background:#1e293b;border-color:var(--primary-light)}
+
+/* MAIN */
+main{flex:1;display:flex;flex-direction:column;align-items:center;padding:24px 16px 40px;gap:28px;max-width:600px;margin:0 auto;width:100%}
+
+/* PRESETS */
+.preset-bar{display:flex;gap:8px;flex-wrap:wrap;justify-content:center}
+.preset-btn{padding:8px 18px;border-radius:999px;border:2px solid var(--card-border);background:var(--card);color:var(--text);font-size:.85rem;font-weight:600;cursor:pointer;transition:all .2s}
+.preset-btn:hover,.preset-btn.active{border-color:var(--primary);color:var(--primary);background:rgba(37,99,235,.08)}
+.dark .preset-btn:hover,.dark .preset-btn.active{background:rgba(37,99,235,.18)}
+
+/* TIMER DISPLAY */
+.timer-ring-wrap{position:relative;width:var(--ring-size);height:var(--ring-size)}
+.timer-ring-svg{width:100%;height:100%;transform:rotate(-90deg)}
+.timer-ring-bg{fill:none;stroke:var(--card-border);stroke-width:var(--ring-stroke)}
+.timer-ring-fg{fill:none;stroke:var(--work-color);stroke-width:var(--ring-stroke);stroke-linecap:round;transition:stroke .4s,stroke-dashoffset .35s linear}
+.timer-center{position:absolute;inset:0;display:flex;flex-direction:column;align-items:center;justify-content:center}
+.timer-time{font-size:4rem;font-weight:700;font-variant-numeric:tabular-nums;line-height:1;letter-spacing:2px}
+.timer-label{font-size:.95rem;color:var(--text-muted);margin-top:4px;text-transform:uppercase;letter-spacing:1px;font-weight:600}
+.timer-state-dot{width:10px;height:10px;border-radius:50%;margin-top:8px;transition:background .4s}
+
+/* CONTROLS */
+.controls{display:flex;gap:12px;flex-wrap:wrap;justify-content:center}
+.ctrl-btn{min-width:100px;padding:14px 28px;border:none;border-radius:12px;font-size:1rem;font-weight:700;cursor:pointer;transition:transform .1s,box-shadow .2s,background .2s;display:flex;align-items:center;justify-content:center;gap:6px}
+.ctrl-btn:active{transform:scale(.96)}
+.ctrl-btn.primary{background:var(--primary);color:#fff;box-shadow:0 4px 16px rgba(37,99,235,.35)}
+.ctrl-btn.primary:hover{background:var(--primary-light)}
+.ctrl-btn.secondary{background:var(--card);color:var(--text);border:2px solid var(--card-border)}
+.ctrl-btn.secondary:hover{border-color:var(--primary)}
+.ctrl-btn.danger{background:#ef4444;color:#fff}
+.ctrl-btn.danger:hover{background:#dc2626}
+.ctrl-btn:disabled{opacity:.4;cursor:not-allowed;transform:none}
+
+/* SESSIONS */
+.sessions{display:flex;align-items:center;gap:8px;font-size:.95rem;color:var(--text-muted)}
+.sessions strong{color:var(--text);font-size:1.2rem}
+
+/* CUSTOM INPUT */
+.custom-panel{display:none;gap:12px;align-items:center;flex-wrap:wrap;justify-content:center}
+.custom-panel.show{display:flex}
+.custom-input{display:flex;align-items:center;gap:6px}
+.custom-input label{font-size:.85rem;color:var(--text-muted);font-weight:600}
+.custom-input input{width:64px;padding:8px;border:2px solid var(--card-border);border-radius:8px;background:var(--card);color:var(--text);font-size:1rem;text-align:center;font-weight:600}
+.custom-input input:focus{outline:none;border-color:var(--primary)}
+.custom-apply{padding:8px 18px;border-radius:8px;border:2px solid var(--primary);background:var(--primary);color:#fff;font-size:.85rem;font-weight:700;cursor:pointer}
+
+/* FOOTER */
+footer{background:var(--dark-nav);color:#cbd5e1;padding:40px 24px 20px;text-align:center}
+.footer-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(180px,1fr));gap:24px;max-width:800px;margin:0 auto 28px;text-align:left}
+.footer-col h4{color:#fff;font-size:.95rem;margin-bottom:10px}
+.footer-col a{display:block;color:#94a3b8;text-decoration:none;font-size:.85rem;padding:3px 0;transition:color .2s}
+.footer-col a:hover{color:var(--primary-light)}
+.footer-bottom{border-top:1px solid #334155;padding-top:16px;font-size:.8rem;color:#64748b}
+.footer-bottom a{color:var(--primary-light);text-decoration:none}
+
+/* ANIMATIONS */
+@keyframes pulse{0%,100%{opacity:1}50%{opacity:.5}}
+.pulsing .timer-time{animation:pulse 1s ease-in-out infinite}
+@keyframes fadeUp{from{opacity:0;transform:translateY(12px)}to{opacity:1;transform:translateY(0)}}
+main>*{animation:fadeUp .4s ease both}
+main>*:nth-child(2){animation-delay:.05s}
+main>*:nth-child(3){animation-delay:.1s}
+main>*:nth-child(4){animation-delay:.15s}
+main>*:nth-child(5){animation-delay:.2s}
+main>*:nth-child(6){animation-delay:.25s}
+
+/* RESPONSIVE */
+@media(max-width:500px){
+  :root{--ring-size:220px}
+  .timer-time{font-size:3rem}
+  nav{padding:10px 14px}
+  .nav-links a{display:none}
+}
+</style>
+</head>
+<body>
+
+<nav>
+  <a href="/" class="nav-brand"><span>Joy</span>miz Timer</a>
+  <div class="nav-links">
+    <a href="#features">Features</a>
+    <a href="https://joymiz.com" target="_blank">More Tools</a>
+    <button class="dark-toggle" id="darkToggle" aria-label="Toggle dark mode">☀</button>
+  </div>
+</nav>
+
+<main>
+  <!-- Preset Selector -->
+  <div class="preset-bar" role="tablist">
+    <button class="preset-btn active" data-preset="pomodoro" role="tab">Pomodoro</button>
+    <button class="preset-btn" data-preset="short" role="tab">Short Study</button>
+    <button class="preset-btn" data-preset="long" role="tab">Long Study</button>
+    <button class="preset-btn" data-preset="custom" role="tab">Custom</button>
+    <button class="preset-btn" data-preset="stopwatch" role="tab">Stopwatch</button>
+  </div>
+
+  <!-- Custom Time Inputs -->
+  <div class="custom-panel" id="customPanel">
+    <div class="custom-input">
+      <label for="customMin">Work</label>
+      <input type="number" id="customMin" min="1" max="999" value="25">
+    </div>
+    <div class="custom-input">
+      <label for="customBreak">Break</label>
+      <input type="number" id="customBreak" min="1" max="999" value="5">
+    </div>
+    <div class="custom-input">
+      <label for="customLong">Long</label>
+      <input type="number" id="customLong" min="1" max="999" value="15">
+    </div>
+    <button class="custom-apply" id="applyCustom">Set</button>
+  </div>
+
+  <!-- Timer Display -->
+  <div class="timer-ring-wrap" id="timerWrap">
+    <svg class="timer-ring-svg" viewBox="0 0 200 200">
+      <circle class="timer-ring-bg" cx="100" cy="100" r="92"/>
+      <circle class="timer-ring-fg" id="ringFg" cx="100" cy="100" r="92"
+        stroke-dasharray="578.05" stroke-dashoffset="0"/>
+    </svg>
+    <div class="timer-center">
+      <div class="timer-time" id="timerDisplay">25:00</div>
+      <div class="timer-label" id="timerLabel">Work</div>
+      <div class="timer-state-dot" id="stateDot"></div>
+    </div>
+  </div>
+
+  <!-- Controls -->
+  <div class="controls">
+    <button class="ctrl-btn primary" id="btnStart">▶ Start</button>
+    <button class="ctrl-btn secondary" id="btnPause" disabled>⏸ Pause</button>
+    <button class="ctrl-btn danger" id="btnReset">↺ Reset</button>
+  </div>
+
+  <!-- Session Counter -->
+  <div class="sessions">
+    Sessions completed: <strong id="sessionCount">0</strong>
+  </div>
+</main>
+
+<footer id="features">
+  <div class="footer-grid">
+    <div class="footer-col">
+      <h4>Joymiz Timer</h4>
+      <a href="#">Pomodoro Timer</a>
+      <a href="#">Stopwatch</a>
+      <a href="#">Custom Timer</a>
+      <a href="#">Dark Mode</a>
+    </div>
+    <div class="footer-col">
+      <h4>More Joymiz Tools</h4>
+      <a href="https://joymiz.com" target="_blank">Joymiz.com</a>
+      <a href="https://joymiz.com/notes" target="_blank">Quick Notes</a>
+      <a href="https://joymiz.com/calc" target="_blank">Calculator</a>
+      <a href="https://joymiz.com/todo" target="_blank">To-Do List</a>
+    </div>
+    <div class="footer-col">
+      <h4>Resources</h4>
+      <a href="#">Pomodoro Guide</a>
+      <a href="#">Productivity Tips</a>
+      <a href="#">Keyboard Shortcuts</a>
+      <a href="#">FAQ</a>
+    </div>
+    <div class="footer-col">
+      <h4>About</h4>
+      <a href="#">Privacy Policy</a>
+      <a href="#">Terms of Use</a>
+      <a href="mailto:hello@joymiz.com">Contact</a>
+      <a href="#">Changelog</a>
+    </div>
+  </div>
+  <div class="footer-bottom">
+    &copy; 2026 <a href="https://joymiz.com">Joymiz</a>. Free productivity tools.
+  </div>
+</footer>
+
+<script>
+(function(){
+  const presets={
+    pomodoro:{work:25,brk:5,long:15,label:'Pomodoro'},
+    short:{work:20,brk:5,long:10,label:'Short Study'},
+    long:{work:50,brk:10,long:15,label:'Long Study'},
+    custom:{work:25,brk:5,long:15,label:'Custom'}
+  };
+
+  let current='pomodoro';
+  let workMin=25,brkMin=5,longMin=15;
+  let totalSec=workMin*60;
+  let remaining=totalSec;
+  let running=false;
+  let interval=null;
+  let mode='work'; // work, break, longBreak
+  let sessions=0;
+  let isStopwatch=false;
+  let swElapsed=0;
+
+  const $=id=>document.getElementById(id);
+  const display=$('timerDisplay');
+  const label=$('timerLabel');
+  const dot=$('stateDot');
+  const ring=$('ringFg');
+  const btnStart=$('btnStart');
+  const btnPause=$('btnPause');
+  const btnReset=$('btnReset');
+  const sessionEl=$('sessionCount');
+  const customPanel=$('customPanel');
+  const wrap=$('timerWrap');
+  const circumference=2*Math.PI*92;
+
+  ring.style.strokeDasharray=circumference;
+
+  function getActiveColor(){
+    if(isStopwatch) return getComputedStyle(document.documentElement).getPropertyValue('--stopwatch-color').trim();
+    if(mode==='work') return getComputedStyle(document.documentElement).getPropertyValue('--work-color').trim();
+    if(mode==='break') return getComputedStyle(document.documentElement).getPropertyValue('--break-color').trim();
+    return getComputedStyle(document.documentElement).getPropertyValue('--long-break-color').trim();
+  }
+
+  function formatTime(s){
+    const m=Math.floor(s/60);
+    const sec=s%60;
+    return String(m).padStart(2,'0')+':'+String(sec).padStart(2,'0');
+  }
+
+  function updateDisplay(){
+    if(isStopwatch){
+      display.textContent=formatTime(swElapsed);
+      label.textContent='Stopwatch';
+      const c=circumference;
+      ring.style.strokeDashoffset='0';
+      ring.style.stroke=getActiveColor();
+      dot.style.background=getActiveColor();
+      return;
+    }
+    display.textContent=formatTime(remaining);
+    const pct=totalSec>0?(totalSec-remaining)/totalSec:0;
+    ring.style.strokeDashoffset=circumference*(1-pct);
+    ring.style.stroke=getActiveColor();
+    dot.style.background=getActiveColor();
+
+    if(mode==='work') label.textContent='Work';
+    else if(mode==='break') label.textContent='Break';
+    else label.textContent='Long Break';
+  }
+
+  function setPresetColors(){
+    ring.style.stroke=getActiveColor();
+    dot.style.background=getActiveColor();
+  }
+
+  function playBeep(){
+    try{
+      const ctx=new(window.AudioContext||window.webkitAudioContext)();
+      [0,0.15,0.3].forEach(delay=>{
+        const o=ctx.createOscillator();
+        const g=ctx.createGain();
+        o.type='sine';
+        o.frequency.value=880;
+        g.gain.setValueAtTime(0.3,ctx.currentTime+delay);
+        g.gain.exponentialRampToValueAtTime(0.001,ctx.currentTime+delay+0.2);
+        o.connect(g);g.connect(ctx.destination);
+        o.start(ctx.currentTime+delay);
+        o.stop(ctx.currentTime+delay+0.2);
+      });
+    }catch(e){}
+  }
+
+  function advanceSession(){
+    sessions++;
+    sessionEl.textContent=sessions;
+    playBeep();
+    if(mode==='work'){
+      if(sessions%4===0){mode='longBreak';remaining=longMin*60;}
+      else{mode='break';remaining=brkMin*60;}
+    }else{
+      mode='work';remaining=workMin*60;
+    }
+    totalSec=remaining;
+    updateDisplay();
+  }
+
+  function tick(){
+    if(isStopwatch){
+      swElapsed++;
+      updateDisplay();
+      return;
+    }
+    if(remaining<=0){
+      clearInterval(interval);interval=null;running=false;
+      btnStart.disabled=false;btnPause.disabled=true;
+      display.parentElement.parentElement.classList.remove('pulsing');
+      advanceSession();
+      return;
+    }
+    remaining--;
+    updateDisplay();
+  }
+
+  btnStart.addEventListener('click',()=>{
+    if(running) return;
+    running=true;
+    btnStart.disabled=true;
+    btnPause.disabled=false;
+    wrap.classList.add('pulsing');
+    if(!interval) interval=setInterval(tick,1000);
+  });
+
+  btnPause.addEventListener('click',()=>{
+    if(!running) return;
+    running=false;
+    clearInterval(interval);interval=null;
+    btnStart.disabled=false;
+    btnPause.disabled=true;
+    wrap.classList.remove('pulsing');
+  });
+
+  btnReset.addEventListener('click',()=>{
+    running=false;
+    clearInterval(interval);interval=null;
+    btnStart.disabled=false;
+    btnPause.disabled=true;
+    wrap.classList.remove('pulsing');
+    if(isStopwatch){
+      swElapsed=0;
+    }else{
+      mode='work';remaining=workMin*60;totalSec=remaining;
+    }
+    updateDisplay();
+  });
+
+  document.querySelectorAll('.preset-btn').forEach(btn=>{
+    btn.addEventListener('click',()=>{
+      document.querySelectorAll('.preset-btn').forEach(b=>b.classList.remove('active'));
+      btn.classList.add('active');
+      const p=btn.dataset.preset;
+      current=p;
+      running=false;
+      clearInterval(interval);interval=null;
+      btnStart.disabled=false;
+      btnPause.disabled=true;
+      wrap.classList.remove('pulsing');
+      sessions=0;sessionEl.textContent='0';
+
+      if(p==='stopwatch'){
+        isStopwatch=true;swElapsed=0;
+        customPanel.classList.remove('show');
+      }else{
+        isStopwatch=false;
+        const pr=presets[p];
+        workMin=pr.work;brkMin=pr.brk;longMin=pr.long;
+        mode='work';remaining=workMin*60;totalSec=remaining;
+        if(p==='custom') customPanel.classList.add('show');
+        else customPanel.classList.remove('show');
+      }
+      setPresetColors();
+      updateDisplay();
+    });
+  });
+
+  $('applyCustom').addEventListener('click',()=>{
+    const w=parseInt($('customMin').value)||25;
+    const b=parseInt($('customBreak').value)||5;
+    const l=parseInt($('customLong').value)||15;
+    workMin=w;brkMin=b;longMin=l;
+    mode='work';remaining=workMin*60;totalSec=remaining;
+    isStopwatch=false;
+    running=false;
+    clearInterval(interval);interval=null;
+    btnStart.disabled=false;btnPause.disabled=true;
+    wrap.classList.remove('pulsing');
+    sessions=0;sessionEl.textContent='0';
+    setPresetColors();updateDisplay();
+  });
+
+  // Dark mode
+  const darkBtn=$('darkToggle');
+  const savedDark=localStorage.getItem('joymiz-timer-dark');
+  if(savedDark==='true'||(!savedDark&&window.matchMedia('(prefers-color-scheme:dark)').matches)){
+    document.body.classList.add('dark');
+    darkBtn.textContent='🌙';
+  }
+  darkBtn.addEventListener('click',()=>{
+    document.body.classList.toggle('dark');
+    const isDark=document.body.classList.contains('dark');
+    darkBtn.textContent=isDark?'🌙':'☀';
+    localStorage.setItem('joymiz-timer-dark',isDark);
+    updateDisplay();
+  });
+
+  updateDisplay();
+})();
+</script>
+</body>
+</html>
